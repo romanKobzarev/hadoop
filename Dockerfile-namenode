@@ -1,0 +1,20 @@
+FROM centos:7
+ENV PASS 1208
+ENV JAVA_HOME /usr/lib/jvm/java-1.8.0-openjdk-1.8.0.222.b10-1.el7_7.x86_64
+ENV HADOOP_HOME /usr/local/hadoop/current
+
+
+RUN yum -y install java sudo nano wget
+CMD sudo cp -r $JAVA_HOME/jre/* $JAVA_HOME/
+ADD https://archive.apache.org/dist/hadoop/common/hadoop-3.1.2/hadoop-3.1.2.tar.gz /opt/
+RUN tar -xzf /opt/hadoop-3.1.2.tar.gz -C /opt/
+
+COPY entrypoint-namenode /opt/
+CMD chmod +x /opt/entrypoint-namenode
+
+CMD mkdir /opt/mount{1,2}
+VOLUME /opt/mount1 /opt/mount2
+
+ENTRYPOINT /opt/entrypoint-namenode && /bin/bash
+
+

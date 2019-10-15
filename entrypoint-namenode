@@ -1,0 +1,51 @@
+#!/bin/bash
+
+adduser exam
+echo $PASS | passwd exam --stdin
+usermod -aG wheel exam
+
+echo 'exam ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+sudo mkdir -p $HADOOP_HOME;
+sudo ln -s /opt/hadoop-3.1.2/* $HADOOP_HOME;
+
+sudo groupadd hadoop
+users='hadoop yarn hdfs'
+for u in $users; do sudo adduser -g hadoop "$u"; sudo echo "$PASS" | passwd "$u" --stdin; done;
+
+sudo mkdir /opt/mount{1,2}/namenode-dir
+
+sudo chown hdfs:hadoop /opt/mount{1,2}/namenode-dir
+
+sudo mkdir -p $HADOOP_HOME/etc/hadoop/
+
+cd $HADOOP_HOME/etc/hadoop/
+
+sudo wget -O hadoop-env.sh https://gist.githubusercontent.com/rdaadr/2f42f248f02aeda18105805493bb0e9b/raw/6303e424373b3459bcf3720b253c01373666fe7c/hadoop-env.sh;
+sudo wget -O core-site.xml https://gist.githubusercontent.com/rdaadr/64b9abd1700e15f04147ea48bc72b3c7/raw/2d416bf137cba81b107508153621ee548e2c877d/core-site.xml;
+sudo wget -O hdfs-site.xml https://gist.githubusercontent.com/rdaadr/2bedf24fd2721bad276e416b57d63e38/raw/640ee95adafa31a70869b54767104b826964af48/hdfs-site.xml;
+sudo wget -O yarn-site.xml https://gist.githubusercontent.com/Stupnikov-NA/ba87c0072cd51aa85c9ee6334cc99158/raw/bda0f760878d97213196d634be9b53a089e796ea/yarn-site.xml;
+
+sudo cp -r $JAVA_HOME/jre/* $JAVA_HOME/
+
+sudo sed -i 's,JAVA_HOME=.*,JAVA_HOME='$JAVA_HOME',g' ./hadoop-env.sh;
+
+sudo sed -i 's,HADOOP_HOME=.*,HADOOP_HOME='$HADOOP_HOME',g' ./hadoop-env.sh;
+sudo sed -i 's,HADOOP_HEAPSIZE_MAX=.*, HADOOP_HEAPSIZE_MAX=512M,g' ./hadoop-env.sh;
+
+sudo sed -i 's,%HDFS_NAMENODE_HOSTNAME%,'$HOSTNAME',g' ./core-site.xml;
+
+sudo sed -i 's,%NAMENODE_DIRS%,/opt/mount1/namenode-dir\,/opt/mount2/namenode-dir,g' ./hdfs-site.xml;
+sudo sed -i 's,%DATANODE_DIRS%,/opt/mount1/datanode-dir\,/opt/mount2/datanode-dir,g' ./hdfs-site.xml;
+
+sudo sed -i 's,%YARN_RESOURCE_MANAGER_HOSTNAME%,'$HOSTNAME',g' ./yarn-site.xml;
+sudo sed -i 's,%NODE_MANAGER_LOCAL_DIR%,/opt/mount1/nodemanager-local-dir\,/opt/mount2/nodemanger-local-dir,g' ./yarn-site.xml;
+sudo sed -i 's,%NODE_MANAGER_LOG_DIR%,/opt/mount1/nodemanager-log-dir\,/opt/mount2/nodemanger-log-dir,g' ./yarn-site.xml;
+
+sudo chmod ugo+rwx -R $HADOOP_HOME
+su hdfs --command "$HADOOP_HOME/bin/hdfs namenode -format cluster1"
+su hdfs --command "$HADOOP_HOME/bin/hdfs --daemon start namenode"
+sudo chmod ugo+rwx -R $HADOOP_HOME
+su yarn --command "$HADOOP_HOME/bin/yarn --daemon start resourcemanager"
+
+
