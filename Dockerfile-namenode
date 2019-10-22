@@ -16,5 +16,3 @@ CMD mkdir /opt/mount{1,2}
 VOLUME /opt/mount1 /opt/mount2
 
 ENTRYPOINT /opt/entrypoint-namenode && /bin/bash
-
-
